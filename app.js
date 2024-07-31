@@ -1,11 +1,10 @@
 const { Client, GatewayIntentBits } = require('discord.js');
-const gTTS = require('gtts');
 const fs = require('fs');
 const path = require('path');
 const { token } = require('./config.json');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
-const { Readable } = require('stream');
 const fetch = require('node-fetch'); // Ensure you have node-fetch installed
+const ffmpeg = require('fluent-ffmpeg');
 
 const client = new Client({
     intents: [
@@ -16,36 +15,61 @@ const client = new Client({
     ]
 });
 
+let globalSpeed = 1.0; // Default speed
+
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
 });
 
 client.on('messageCreate', async message => {
-    if (!message.content.startsWith('!tts') || message.author.bot) return;
+    if (message.author.bot) return;
 
-    const args = message.content.slice(4).trim();
-    if (!args) return message.reply('Please provide a message to convert to speech.');
+    const [command, ...args] = message.content.split(' ');
 
-    const voiceChannel = message.member.voice.channel;
-    if (!voiceChannel) return message.reply('You need to be in a voice channel to use this command.');
-    const text = message.content.replace('!tts ', '');
-    if (!text) return;
+    const commandHandlers = {
+        '!tts': async () => {
+            const text = args.join(' ');
+            if (!text) return message.reply('Đã câm con cụt');
 
-    const connection = joinVoiceChannel({
-        channelId: voiceChannel.id,
-        guildId: message.guild.id,
-        adapterCreator: message.guild.voiceAdapterCreator,
-    });
+            const voiceChannel = message.member.voice.channel;
+            if (!voiceChannel) return message.reply('Đã câm còn bị tự kỉ');
 
-    const audioStream = await fetchTTS(text);
-    if (audioStream) {
-        const audioResource = createAudioResource(audioStream);
-        const audioPlayer = createAudioPlayer();
+            await handleTTS(text, voiceChannel);
+        },
+        '!adj': async () => {
+            if (args.length < 1) return message.reply('Quên số kìa em');
 
-        audioPlayer.play(audioResource);
-        connection.subscribe(audioPlayer);
+            const speed = parseFloat(args[0]);
+            if (speed < 0.5 || speed > 5) {
+                return message.reply('Chỉnh spd từ 0.5 - 5 thôi thz ngu');
+            }
+            if (isNaN(speed)) return message.reply('Chỉnh speed đưa chữ ăn lz à');
+
+            globalSpeed = speed;
+            message.reply(`Global speed adjustment set to ${speed}.`);
+        }
+    };
+
+    if (commandHandlers[command]) {
+        await commandHandlers[command]();
     }
 });
+
+async function handleTTS(text, voiceChannel) {
+    const connection = joinVoiceChannel({
+        channelId: voiceChannel.id,
+        guildId: voiceChannel.guild.id,
+        adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+    });
+
+    const audioFilePath = await fetchTTS(text);
+    const outputFilePath = path.join(__dirname, 'tts_fast.mp3');
+    await adjustSpeed(audioFilePath, outputFilePath, globalSpeed);
+
+    console.log('Audio processed and saved at', outputFilePath);
+
+    playAudio(outputFilePath, connection, audioFilePath);
+}
 
 async function fetchTTS(text) {
     const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=vi&client=tw-ob`;
@@ -56,7 +80,33 @@ async function fetchTTS(text) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    return Readable.from(buffer);
+    const filePath = path.join(__dirname, 'tts.mp3');
+    fs.writeFileSync(filePath, buffer);
+
+    return filePath;
+}
+
+function adjustSpeed(inputPath, outputPath, speed) {
+    return new Promise((resolve, reject) => {
+        ffmpeg(inputPath)
+            .audioFilters(`atempo=${speed}`)
+            .on('end', () => resolve(outputPath))
+            .on('error', (err) => reject(err))
+            .save(outputPath);
+    });
+}
+
+function playAudio(filePath, connection, originalFilePath) {
+    const audioResource = createAudioResource(filePath);
+    const audioPlayer = createAudioPlayer();
+
+    audioPlayer.play(audioResource);
+    connection.subscribe(audioPlayer);
+
+    audioPlayer.on(AudioPlayerStatus.Idle, () => {
+        fs.unlinkSync(filePath); // Clean up the temporary file
+        if (originalFilePath) fs.unlinkSync(originalFilePath); // Clean up the original TTS file if provided
+    });
 }
 
 client.login(token);
