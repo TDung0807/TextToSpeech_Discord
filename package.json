@@ -10,6 +10,11 @@
     "author": "Dung Nguyen",
     "license": "ISC",
     "dependencies": {
-        "discord.js": "^14.15.3"
+        "@discordjs/voice": "^0.17.0",
+        "@google-cloud/text-to-speech": "^5.3.0",
+        "discord.js": "^14.15.3",
+        "gtts": "^0.2.1",
+        "i": "^0.3.7",
+        "node-fetch": "^2.7.0"
     }
 }
