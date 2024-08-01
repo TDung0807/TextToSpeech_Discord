@@ -44,6 +44,17 @@ client.on('messageCreate', async message => {
 
             ttsService.globalSpeed = speed;
             message.reply(`Global speed adjustment set to ${speed}.`);
+        },
+        '!language': async()=>{
+            if (args.length < 1) return message.reply('Biết gõ k:(vi, en)');
+            const language = args[0];
+            console.log(language)
+            if (language !== 'vi' && language !== 'en') {
+                return message.reply('Biết gõ k:(vi, en)');
+            }
+            
+            ttsService.language = language;
+            message.reply(`Global language adjustment set to ${language}.`);
         }
     };
 
