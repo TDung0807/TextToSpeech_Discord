@@ -49,8 +49,8 @@ client.on('messageCreate', async message => {
             if (args.length < 1) return message.reply('Biết gõ k:(vi, en)');
             const language = args[0];
             console.log(language)
-            if (language !== 'vi' && language !== 'en') {
-                return message.reply('Biết gõ k:(vi, en)');
+            if (language !== 'vi' && language !== 'en'&& language !== 'ja') {
+                return message.reply('Biết gõ k:(vi, en, ja)');
             }
             
             ttsService.language = language;

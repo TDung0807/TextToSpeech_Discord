@@ -5,7 +5,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 
 class TTSService {
-    constructor(globalSpeed = 1.0,language = 'vn') {
+    constructor(globalSpeed = 1.2,language = 'vi') {
         this.globalSpeed = globalSpeed;
         this.language = language;
     }
@@ -28,7 +28,6 @@ class TTSService {
 
     async fetchTTS(text,language) {
         const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${encodeURIComponent(language)}&client=tw-ob`;
-
         const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to fetch TTS audio');
 
