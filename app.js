@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, MessageAttachment } = require('discord.js');
 const { token } = require('./config.json');
 const TTSService = require('./TTSService');
 
@@ -72,7 +72,25 @@ client.on('messageCreate', async message => {
         },
         '!stk' : async () => {
             message.reply("Nhớ kĩ này, 0372406980 MB BANK");
+        },
+        '!help': async () => {
+            const helpMessage = `
+            !tts <text> - Câm con cụt
+            !adj <speed> - Chính speed
+            !language <language> - Chính ngôn ngữ
+            !stk - Stk
+            `;
+            message.reply(helpMessage);
+        },
+        '!exit': async () => {
+            message.reply('Goodbye!');
+            process.exit(0);
+        },
+        '!qr': async () => {
+            const attachment = new MessageAttachment('images/qr.png');
+            message.reply({ files: [attachment] });
         }
+
     };
 
     if (commandHandlers[command]) {
