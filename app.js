@@ -1,6 +1,7 @@
-const { Client, GatewayIntentBits, MessageAttachment } = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
 const { token } = require('./config.json');
 const TTSService = require('./TTSService');
+const path = require('path');
 
 const client = new Client({
     intents: [
@@ -41,11 +42,11 @@ client.on('messageCreate', async message => {
 
             if (textQueue.length >= MAX_QUEUE_SIZE) {
                 console.log('Đcm nói ít thôi');
-                return message.reply('Đcm nói ít thôi'); 
+                return message.reply('Đcm nói ít thôi');
             }
 
             textQueue.push({ text, voiceChannel });
-            processQueue(); 
+            processQueue();
         },
         '!adj': async () => {
             if (args.length < 1) return message.reply('Quên số kìa em');
@@ -70,7 +71,7 @@ client.on('messageCreate', async message => {
             ttsService.language = language;
             message.reply(`Global language adjustment set to ${language}.`);
         },
-        '!stk' : async () => {
+        '!stk': async () => {
             message.reply("Nhớ kĩ này, 0372406980 MB BANK");
         },
         '!help': async () => {
@@ -87,10 +88,16 @@ client.on('messageCreate', async message => {
             process.exit(0);
         },
         '!qr': async () => {
-            const attachment = new MessageAttachment('images/qr.png');
-            message.reply({ files: [attachment] });
+            const imagePath = path.join(__dirname, 'images', 'qr.jpg'); 
+            try {
+                await message.reply({
+                    files: [imagePath]
+                });
+                console.log('Image sent!');
+            } catch (error) {
+                console.error('Error sending image:', error);
+            }
         }
-
     };
 
     if (commandHandlers[command]) {
