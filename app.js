@@ -14,6 +14,10 @@ const client = new Client({
 let globalSpeed = 1.0; // Default speed
 const ttsService = new TTSService(globalSpeed);
 
+const textQueue = [];
+const MAX_QUEUE_SIZE = 5;
+const MAX_TEXT_LENGTH = 200; // Maximum length for each text
+
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
 });
@@ -25,36 +29,49 @@ client.on('messageCreate', async message => {
 
     const commandHandlers = {
         '!tts': async () => {
-            const text = args.join(' ');
+            let text = args.join(' ');
             if (!text) return message.reply('Đã câm con cụt');
+
+            if (text.length > MAX_TEXT_LENGTH) {
+                return message.reply(`ÉO NGẮN GỌN ĐƯỢC À ?`);
+            }
 
             const voiceChannel = message.member.voice.channel;
             if (!voiceChannel) return message.reply('Đã câm còn bị tự kỉ');
 
-            await ttsService.handleTTS(text, voiceChannel);
+            if (textQueue.length >= MAX_QUEUE_SIZE) {
+                console.log('Đcm nói ít thôi');
+                return message.reply('Đcm nói ít thôi'); 
+            }
+
+            textQueue.push({ text, voiceChannel });
+            processQueue(); 
         },
         '!adj': async () => {
             if (args.length < 1) return message.reply('Quên số kìa em');
 
             const speed = parseFloat(args[0]);
+            if (isNaN(speed)) return message.reply('Chỉnh speed đưa chữ ăn lz à');
             if (speed < 0.5 || speed > 5) {
                 return message.reply('Chỉnh spd từ 0.5 - 5 thôi thz ngu');
             }
-            if (isNaN(speed)) return message.reply('Chỉnh speed đưa chữ ăn lz à');
 
             ttsService.globalSpeed = speed;
             message.reply(`Global speed adjustment set to ${speed}.`);
         },
-        '!language': async()=>{
+        '!language': async () => {
             if (args.length < 1) return message.reply('Biết gõ k:(vi, en)');
+
             const language = args[0];
-            console.log(language)
-            if (language !== 'vi' && language !== 'en'&& language !== 'ja') {
+            if (!['vi', 'en', 'ja'].includes(language)) {
                 return message.reply('Biết gõ k:(vi, en, ja)');
             }
-            
+
             ttsService.language = language;
             message.reply(`Global language adjustment set to ${language}.`);
+        },
+        '!stk' : async () => {
+            message.reply("Nhớ kĩ này, 0372406980 MB BANK");
         }
     };
 
@@ -62,5 +79,19 @@ client.on('messageCreate', async message => {
         await commandHandlers[command]();
     }
 });
+
+async function processQueue() {
+    if (textQueue.length === 0 || ttsService.isSpeaking) return;
+
+    const { text, voiceChannel } = textQueue.shift();
+    ttsService.isSpeaking = true;
+
+    try {
+        await ttsService.handleTTS(text, voiceChannel);
+    } finally {
+        ttsService.isSpeaking = false;
+        if (textQueue.length > 0) processQueue();
+    }
+}
 
 client.login(token);
